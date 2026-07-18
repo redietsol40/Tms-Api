@@ -17,13 +17,13 @@ public class RequestLoggingMiddleware
         context.Response.Headers["X-Correlation-Id"] = correlationId;
 
         var stopwatch = Stopwatch.StartNew();
-        _logger.LogInformation("Request {Method} {Path} CorrelationId={CorrelationId}",
+        _logger.LogInformation("➡️ Request {Method} {Path} CorrelationId={CorrelationId}",
             context.Request.Method, context.Request.Path, correlationId);
 
         await _next(context);
 
         stopwatch.Stop();
-        _logger.LogInformation("Response {StatusCode} Elapsed={Elapsed}ms CorrelationId={CorrelationId}",
+        _logger.LogInformation("✅ Response {StatusCode} in {Elapsed}ms CorrelationId={CorrelationId}",
             context.Response.StatusCode, stopwatch.ElapsedMilliseconds, correlationId);
     }
 }
