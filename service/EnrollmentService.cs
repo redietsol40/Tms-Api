@@ -70,7 +70,7 @@ public class EnrollmentService : IEnrollmentService
         return Task.FromResult(removed);
     }
 }
-
+public class TmsDatabaseException(string message) : Exception(message);
 // --- The data shape ---
 public record EnrollmentRecord(
     string Id,
