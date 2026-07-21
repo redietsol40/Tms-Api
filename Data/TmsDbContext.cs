@@ -15,4 +15,15 @@ public class TmsDbContext(DbContextOptions<TmsDbContext> options) : DbContext(op
     {
         modelBuilder.ApplyConfigurationsFromAssembly(typeof(TmsDbContext).Assembly);
     }
+
+    public override Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
+    {
+        foreach (var entry in ChangeTracker.Entries<Student>()
+                     .Where(e => e.State is EntityState.Added or EntityState.Modified))
+        {
+            entry.Property("LastUpdated").CurrentValue = DateTime.UtcNow;
+        }
+
+        return base.SaveChangesAsync(cancellationToken);
+    }
 }
