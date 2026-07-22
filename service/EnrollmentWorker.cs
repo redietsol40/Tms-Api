@@ -1,19 +1,24 @@
-public class EnrollmentWorker
+using TmsApi.Data;
+
+namespace TmsApi;
+
+using TmsApi;
+
+public class EnrollmentWorker(IServiceScopeFactory scopeFactory)
 {
-    private readonly IServiceScopeFactory _scopeFactory;
-
-    public EnrollmentWorker(IServiceScopeFactory scopeFactory)
-    {
-        _scopeFactory = scopeFactory;
-    }
-
     public void ProcessBatch()
     {
-        using var scope = _scopeFactory.CreateScope();
-        var svc = scope.ServiceProvider.GetRequiredService<IEnrollmentService>();
+        // Create a short-lived scope so we get a fresh, request-independent
+        // scoped DbContext instance — never capture a scoped service directly
+        // inside a singleton.
+        using var scope = scopeFactory.CreateScope();
+        var context = scope.ServiceProvider.GetRequiredService<TmsDbContext>();
 
-        // Example: process enrollments
-        var all = svc.GetAllAsync().Result;
-        // Do something with records...
+        // Example batch work — adjust to whatever the worker actually needs to do.
+        var enrollmentCount = context.Enrollments.Count();
+        Console.WriteLine($"[EnrollmentWorker] Processed batch. Current enrollment count: {enrollmentCount}");
+
+        // The 'using' block disposes the scope (and its scoped services,
+        // including the DbContext) automatically when this method returns.
     }
 }
