@@ -7,6 +7,7 @@ namespace TmsApi.Services;
 
 public class EnrollmentService(TmsDbContext context) : IEnrollmentService
 {
+    // M6: single enrolment lookup
     public async Task<EnrollmentResponseDto?> GetByIdAsync(int courseId, int id, CancellationToken ct)
     {
         return await context.Enrollments
@@ -20,6 +21,7 @@ public class EnrollmentService(TmsDbContext context) : IEnrollmentService
             .FirstOrDefaultAsync(ct);
     }
 
+    // M6: list enrolments for a course
     public async Task<List<EnrollmentResponseDto>> GetByCourseAsync(int courseId, CancellationToken ct)
     {
         return await context.Enrollments
@@ -33,6 +35,7 @@ public class EnrollmentService(TmsDbContext context) : IEnrollmentService
             .ToListAsync(ct);
     }
 
+    // M6: nested create (kept for backward compat if still used)
     public async Task<EnrollmentResponseDto> CreateAsync(int courseId, EnrollStudentRequest request, CancellationToken ct)
     {
         var enrollment = new Enrollment
@@ -50,5 +53,30 @@ public class EnrollmentService(TmsDbContext context) : IEnrollmentService
             enrollment.CourseId,
             enrollment.StudentId,
             enrollment.EnrolledAt);
+    }
+
+    // M7: does this student already hold this course?
+    public async Task<bool> ExistsAsync(int studentId, string courseCode, CancellationToken ct)
+    {
+        return await context.Enrollments
+            .AsNoTracking()
+            .AnyAsync(e => e.StudentId == studentId && e.Course.Code == courseCode, ct);
+    }
+
+    // M7: raw entity insert used by EnrollStudentHandler
+    public async Task AddAsync(Enrollment enrollment, CancellationToken ct)
+    {
+        context.Enrollments.Add(enrollment);
+        await context.SaveChangesAsync(ct);
+    }
+
+    // M7: schedule query - all enrolments for a student
+    public async Task<List<Enrollment>> GetByStudentIdAsync(int studentId, CancellationToken ct)
+    {
+        return await context.Enrollments
+            .AsNoTracking()
+            .Include(e => e.Course)
+            .Where(e => e.StudentId == studentId)
+            .ToListAsync(ct);
     }
 }
