@@ -1,10 +1,10 @@
-﻿using System;
+using System;
 using Microsoft.EntityFrameworkCore.Migrations;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
 #nullable disable
 
-namespace TmsApi.Migrations
+namespace TmsApi.Infrastructure.Persistence.Migrations
 {
     /// <inheritdoc />
     public partial class AddAssessmentsAndCertificates : Migration

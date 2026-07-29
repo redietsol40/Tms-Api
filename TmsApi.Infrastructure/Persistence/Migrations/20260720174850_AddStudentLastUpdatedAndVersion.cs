@@ -1,9 +1,9 @@
-﻿using System;
+using System;
 using Microsoft.EntityFrameworkCore.Migrations;
 
 #nullable disable
 
-namespace TmsApi.Migrations
+namespace TmsApi.Infrastructure.Persistence.Migrations
 {
     /// <inheritdoc />
     public partial class AddStudentLastUpdatedAndVersion : Migration
