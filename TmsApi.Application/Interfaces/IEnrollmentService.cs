@@ -1,7 +1,7 @@
-using TmsApi.Dtos;
-using TmsApi.Entities;
+using TmsApi.Application.DTOs;
+using TmsApi.Domain.Entities;
 
-namespace TmsApi.Services;
+namespace TmsApi.Application.Interfaces;
 
 public interface IEnrollmentService
 {
