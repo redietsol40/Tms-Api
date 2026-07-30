@@ -1,7 +1,7 @@
 using MediatR;
 using TmsApi.Application.Common;
-using TmsApi.Entities;
-using TmsApi.Services;
+using TmsApi.Domain.Entities;
+using TmsApi.Application.Interfaces;
 
 namespace TmsApi.Application.Enrollments.Commands;
 
