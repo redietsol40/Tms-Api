@@ -1,4 +1,6 @@
 using System.Security.Claims;
+using TmsApi.Api.Options;
+using TmsApi.Api.TrainingAuth;
 using System.Text.Encodings.Web;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.EntityFrameworkCore;

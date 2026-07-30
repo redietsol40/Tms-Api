@@ -3,6 +3,9 @@ using System.Text.Encodings.Web;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.Extensions.Options;
 
+namespace TmsApi.Api.TrainingAuth;
+
+
 public class TrainingAuthHandler : AuthenticationHandler<AuthenticationSchemeOptions>
 {
     public TrainingAuthHandler(
