@@ -7,15 +7,14 @@ using Scalar.AspNetCore;
 using Asp.Versioning;
 using FluentValidation;
 using MediatR;
-using TmsApi.Data;
-using TmsApi.Entities;
-using TmsApi.Filters;
-using TmsApi.Services;
-using TmsApi.Middleware;
-using TmsApi.ExceptionHandlers;
+using TmsApi.Infrastructure.Persistence;
+using TmsApi.Domain.Entities;
+using TmsApi.Api.Filters;
+using TmsApi.Application.Interfaces;
+using TmsApi.Api.Middlewares;
+using TmsApi.Api.ExceptionHandlers;
 using TmsApi.Application.Behaviors;
 using TmsApi.Application.Enrollments.Commands;
-using TmsApi;
 
 var builder = WebApplication.CreateBuilder(args);
 
