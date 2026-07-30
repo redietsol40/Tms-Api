@@ -1,4 +1,4 @@
-namespace TmsApi;
+namespace TmsApi.Api;
 
 public class WeatherForecast
 {

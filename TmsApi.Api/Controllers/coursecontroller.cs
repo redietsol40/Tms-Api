@@ -3,7 +3,7 @@ using Microsoft.AspNetCore.Routing;
 using TmsApi.Application.DTOs;
 using TmsApi.Application.Interfaces;
 
-namespace TmsApi.Controllers;
+namespace TmsApi.Api.Controllers;
 
 [ApiController]
 [Route("api/courses")]
