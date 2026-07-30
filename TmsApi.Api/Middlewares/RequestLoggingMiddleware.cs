@@ -1,5 +1,8 @@
 using System.Diagnostics;
 
+namespace TmsApi.Api.Middlewares;
+
+
 public class RequestLoggingMiddleware
 {
     private readonly RequestDelegate _next;
