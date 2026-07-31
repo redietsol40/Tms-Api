@@ -13,7 +13,7 @@ public class CachedCourseService(
     ILogger<CachedCourseService> logger)
     : ICachedCourseService
 {
-    public async Task<CourseResponseDto> GetCourseAsync(string code, CancellationToken ct)
+public async Task<CourseResponseDto> GetCourseAsync(string code, CancellationToken ct)
     {
         var key = CacheKeys.Course(code);
         var dbHit = false;
@@ -39,22 +39,20 @@ public class CachedCourseService(
 
         return dto;
     }
-
-    public async Task<List<CourseResponseDto>> GetAllCoursesAsync(CancellationToken ct)
+   public async Task<PagedResponse<CourseResponseDto>> GetCoursesPageAsync(int page, int pageSize, CancellationToken ct)
     {
-        var key = CacheKeys.CoursesAll;
+        var key = CacheKeys.CoursesPage(page, pageSize);
         var dbHit = false;
 
-        var list = await cache.GetOrCreateAsync(
+        var result = await cache.GetOrCreateAsync(
             key,
-            service,
+            (service, page, pageSize),
             async (state, token) =>
             {
                 dbHit = true;
                 logger.LogInformation("Cache MISS for {Key} fetching from DB", key);
-                var request = new PagedRequest { Page = 1, PageSize = 50 };
-                var paged = await state.GetCoursesAsync(request, token);
-                return paged.Items.ToList();
+                var request = new PagedRequest { Page = state.page, PageSize = state.pageSize };
+                return await state.service.GetCoursesAsync(request, token);
             },
             tags: [CacheKeys.CoursesTag],
             cancellationToken: ct);
@@ -62,9 +60,8 @@ public class CachedCourseService(
         if (!dbHit)
             logger.LogInformation("Cache HIT for {Key}", key);
 
-        return list;
+        return result;
     }
-
     public async Task InvalidateCourseCacheAsync(CancellationToken ct)
     {
         logger.LogInformation("Invalidating cache tag {Tag}", CacheKeys.CoursesTag);
