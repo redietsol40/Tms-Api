@@ -88,3 +88,39 @@ builder.Services.AddScoped<ICourseService, CourseService>();
 builder.Services.AddScoped<IEnrollmentService, EnrollmentService>();
 
 // M7 Session 1 — MediatR, FluentValidation, pipeline
+builder.Services.AddMediatR(cfg => cfg.RegisterServicesFromAssemblyContaining<EnrollStudentCommand>());
+builder.Services.AddValidatorsFromAssemblyContaining<EnrollStudentValidator>();
+builder.Services.AddTransient(typeof(IPipelineBehavior<,>), typeof(LoggingBehavior<,>));
+builder.Services.AddTransient(typeof(IPipelineBehavior<,>), typeof(ValidationBehavior<,>));
+
+builder.Services.AddExceptionHandler<GlobalExceptionHandler>();
+
+var app = builder.Build();
+
+// Seed the database on startup (dev convenience)
+using (var scope = app.Services.CreateScope())
+{
+    var context = scope.ServiceProvider.GetRequiredService<TmsDbContext>();
+    await DataSeeder.SeedAsync(context);
+}
+
+app.UseExceptionHandler();
+app.UseMiddleware<RequestLoggingMiddleware>();
+app.UseMiddleware<V1DeprecationMiddleware>();
+
+app.UseAuthentication();
+app.UseAuthorization();
+
+if (app.Environment.IsDevelopment())
+{
+    app.MapOpenApi();
+    app.MapScalarApiReference(options =>
+    {
+        options.AddDocument("v1");
+        options.AddDocument("v2");
+    });
+}
+
+app.MapControllers();
+
+app.Run();

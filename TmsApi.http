@@ -7,4 +7,9 @@ Accept: application/json
 GET http://localhost:5148/api/assessments/results
 X-Training-User: Rita
 Accept: application/json
+##
+//curl -i https://localhost:5148/api/v1/courses
+
+//curl -i https://localhost:5148/api/v2/courses
+
 
