@@ -17,6 +17,7 @@ using TmsApi.Api.Middlewares;
 using TmsApi.Api.ExceptionHandlers;
 using TmsApi.Application.Behaviors;
 using TmsApi.Application.Enrollments.Commands;
+using Microsoft.Extensions.Caching.Hybrid;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -93,6 +94,15 @@ builder.Services.AddValidatorsFromAssemblyContaining<EnrollStudentValidator>();
 builder.Services.AddTransient(typeof(IPipelineBehavior<,>), typeof(LoggingBehavior<,>));
 builder.Services.AddTransient(typeof(IPipelineBehavior<,>), typeof(ValidationBehavior<,>));
 
+builder.Services.AddHybridCache(options =>
+{
+    options.DefaultEntryOptions = new HybridCacheEntryOptions
+    {
+        Expiration = TimeSpan.FromMinutes(10),
+        LocalCacheExpiration = TimeSpan.FromMinutes(2)
+    };
+});
+
 builder.Services.AddExceptionHandler<GlobalExceptionHandler>();
 
 var app = builder.Build();
@@ -119,6 +129,7 @@ if (app.Environment.IsDevelopment())
         options.AddDocument("v1");
         options.AddDocument("v2");
     });
+
 }
 
 app.MapControllers();
