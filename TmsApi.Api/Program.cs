@@ -18,6 +18,7 @@ using TmsApi.Api.ExceptionHandlers;
 using TmsApi.Application.Behaviors;
 using TmsApi.Application.Enrollments.Commands;
 using Microsoft.Extensions.Caching.Hybrid;
+using TmsApi.Infrastructure.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -87,6 +88,7 @@ builder.Services.AddDbContext<TmsDbContext>(options =>
 // M6 Session 1 — Course and Enrollment services (DB-backed)
 builder.Services.AddScoped<ICourseService, CourseService>();
 builder.Services.AddScoped<IEnrollmentService, EnrollmentService>();
+builder.Services.AddScoped<ICachedCourseService, CachedCourseService>();
 
 // M7 Session 1 — MediatR, FluentValidation, pipeline
 builder.Services.AddMediatR(cfg => cfg.RegisterServicesFromAssemblyContaining<EnrollStudentCommand>());
