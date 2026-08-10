@@ -19,8 +19,15 @@ using TmsApi.Application.Behaviors;
 using TmsApi.Application.Enrollments.Commands;
 using Microsoft.Extensions.Caching.Hybrid;
 using TmsApi.Infrastructure.Services;
-
+using TmsApi.Infrastructure.Transcripts;
+using System.Threading.Channels;
+using TmsApi.Application.Transcripts;
+using TmsApi.Infrastructure.Workers;
+using TmsApi.Api.Hubs;
+using TmsApi.Application.Notifications;
+using TmsApi.Api.Notifications;
 var builder = WebApplication.CreateBuilder(args);
+
 
 // ---------- SERVICES ----------
 
@@ -39,6 +46,7 @@ builder.Host.UseDefaultServiceProvider(options =>
 
 // Background worker (M4 Session 2 — Exercise 2)
 builder.Services.AddSingleton<EnrollmentWorker>();
+
 
 // Options pattern — validated configuration (M4 Session 2 — Exercise 3)
 builder.Services.AddOptions<PaymentOptions>()
@@ -84,11 +92,18 @@ builder.Services.AddDbContext<TmsDbContext>(options =>
     options.UseNpgsql(builder.Configuration.GetConnectionString("TmsDatabase"))
         .LogTo(Console.WriteLine, LogLevel.Information) // SQL logging (M5 Session 1, Exercise 2)
         .EnableSensitiveDataLogging()); // dev only
+        builder.Services.AddCors(options =>
+{
+    options.AddPolicy("AllowAngular", policy =>
+        policy.WithOrigins("http://localhost:4200")
+              .AllowAnyHeader()
+              .AllowAnyMethod());
+});
 
 // M6 Session 1 — Course and Enrollment services (DB-backed)
 builder.Services.AddScoped<ICourseService, CourseService>();
-builder.Services.AddScoped<IEnrollmentService, EnrollmentService>();
 builder.Services.AddScoped<ICachedCourseService, CachedCourseService>();
+builder.Services.AddScoped<IEnrollmentService, EnrollmentService>();
 
 // M7 Session 1 — MediatR, FluentValidation, pipeline
 builder.Services.AddMediatR(cfg => cfg.RegisterServicesFromAssemblyContaining<EnrollStudentCommand>());
@@ -106,6 +121,17 @@ builder.Services.AddHybridCache(options =>
 });
 
 builder.Services.AddExceptionHandler<GlobalExceptionHandler>();
+builder.Services.AddHybridCache();
+builder.Services.AddSingleton<ITranscriptStatusStore, InMemoryTranscriptStatusStore>();
+builder.Services.AddHostedService<TranscriptWorker>();
+builder.Services.AddSingleton(Channel.CreateBounded<TranscriptRequest>(
+new BoundedChannelOptions(100)
+{
+FullMode = BoundedChannelFullMode.Wait
+}));
+
+builder.Services.AddSignalR();
+builder.Services.AddSingleton<ITranscriptNotificationService, SignalRTranscriptNotificationService>();
 
 var app = builder.Build();
 
@@ -122,6 +148,9 @@ app.UseMiddleware<V1DeprecationMiddleware>();
 
 app.UseAuthentication();
 app.UseAuthorization();
+app.UseMiddleware<V1DeprecationMiddleware>();
+app.UseCors("AllowAngular");
+
 
 if (app.Environment.IsDevelopment())
 {
@@ -135,5 +164,7 @@ if (app.Environment.IsDevelopment())
 }
 
 app.MapControllers();
+app.MapHub<TmsHub>("/hubs/tms");
+
 
 app.Run();

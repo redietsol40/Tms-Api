@@ -1,5 +1,6 @@
 using Asp.Versioning;
 using Microsoft.AspNetCore.Mvc;
+using TmsApi.Application.DTOs;
 using TmsApi.Application.Interfaces;
 
 namespace TmsApi.Api.Controllers.V2;
@@ -18,9 +19,19 @@ public class CoursesController(ICachedCourseService cachedCourseService) : Contr
         page = Math.Max(1, page);
         pageSize = Math.Clamp(pageSize, 1, 50);
 
-        var paged = await cachedCourseService.GetCoursesPageAsync(page, pageSize, ct);
+        var request = new PagedRequest
+        {
+            Page = page,
+            PageSize = pageSize
+        };
 
-        var totalPages = (int)Math.Ceiling(paged.TotalCount / (double)pageSize);
+        var paged = await cachedCourseService.GetCoursesAsync(
+            request,
+            ct);
+
+        var totalPages = (int)Math.Ceiling(
+            paged.TotalCount / (double)pageSize);
+
         var hasNext = page < totalPages;
         var hasPrevious = page > 1;
 
@@ -39,8 +50,12 @@ public class CoursesController(ICachedCourseService cachedCourseService) : Contr
             links = new
             {
                 self = $"/api/v2/courses?page={page}&pageSize={pageSize}",
-                next = hasNext ? $"/api/v2/courses?page={page + 1}&pageSize={pageSize}" : (string?)null,
-                prev = hasPrevious ? $"/api/v2/courses?page={page - 1}&pageSize={pageSize}" : (string?)null,
+                next = hasNext
+                    ? $"/api/v2/courses?page={page + 1}&pageSize={pageSize}"
+                    : null,
+                prev = hasPrevious
+                    ? $"/api/v2/courses?page={page - 1}&pageSize={pageSize}"
+                    : null,
                 enroll = "/api/v2/enrollments"
             }
         });

@@ -13,7 +13,9 @@ public class CachedCourseService(
     ILogger<CachedCourseService> logger)
     : ICachedCourseService
 {
-public async Task<CourseResponseDto> GetCourseAsync(string code, CancellationToken ct)
+    public async Task<CourseResponseDto> GetCourseAsync(
+        string code,
+        CancellationToken ct)
     {
         var key = CacheKeys.Course(code);
         var dbHit = false;
@@ -24,47 +26,83 @@ public async Task<CourseResponseDto> GetCourseAsync(string code, CancellationTok
             async (state, token) =>
             {
                 dbHit = true;
-                logger.LogInformation("Cache MISS for {Key} fetching from DB", key);
-                var course = await state.service.GetByCodeAsync(state.code, token)
-                    ?? throw new NotFoundException($"Course {state.code} not found.");
+
+                logger.LogInformation(
+                    "Cache MISS for {Key}. Fetching from database.",
+                    key);
+
+                var course = await state.service.GetByCodeAsync(
+                    state.code,
+                    token)
+                    ?? throw new NotFoundException(
+                        $"Course {state.code} not found.");
+
                 return new CourseResponseDto(
-                    course.Id, course.Code, course.Title,
-                    course.MaxCapacity, course.Enrollments.Count);
+                    course.Id,
+                    course.Code,
+                    course.Title,
+                    course.MaxCapacity,
+                    course.Enrollments.Count);
             },
             tags: [CacheKeys.CoursesTag],
             cancellationToken: ct);
 
+
         if (!dbHit)
-            logger.LogInformation("Cache HIT for {Key}", key);
+        {
+            logger.LogInformation(
+                "Cache HIT for {Key}",
+                key);
+        }
 
         return dto;
     }
-   public async Task<PagedResponse<CourseResponseDto>> GetCoursesPageAsync(int page, int pageSize, CancellationToken ct)
+
+
+   public async Task<PagedResponse<CourseResponseDto>> GetCoursesAsync(
+    PagedRequest request,
+    CancellationToken ct)
+{
+    var key = $"courses-page-{request.Page}-{request.PageSize}";
+
+    var dbHit = false;
+
+    var result = await cache.GetOrCreateAsync(
+        key,
+        (service, request),
+        async (state, token) =>
+        {
+            dbHit = true;
+
+            logger.LogInformation(
+                "Cache MISS for {Key} fetching from DB",
+                key);
+
+            return await state.service.GetCoursesAsync(
+                state.request,
+                token);
+        },
+        tags: [CacheKeys.CoursesTag],
+        cancellationToken: ct);
+
+    if (!dbHit)
     {
-        var key = CacheKeys.CoursesPage(page, pageSize);
-        var dbHit = false;
-
-        var result = await cache.GetOrCreateAsync(
-            key,
-            (service, page, pageSize),
-            async (state, token) =>
-            {
-                dbHit = true;
-                logger.LogInformation("Cache MISS for {Key} fetching from DB", key);
-                var request = new PagedRequest { Page = state.page, PageSize = state.pageSize };
-                return await state.service.GetCoursesAsync(request, token);
-            },
-            tags: [CacheKeys.CoursesTag],
-            cancellationToken: ct);
-
-        if (!dbHit)
-            logger.LogInformation("Cache HIT for {Key}", key);
-
-        return result;
+        logger.LogInformation(
+            "Cache HIT for {Key}",
+            key);
     }
-    public async Task InvalidateCourseCacheAsync(CancellationToken ct)
+
+    return result;
+}
+    public async Task InvalidateCourseCacheAsync(
+        CancellationToken ct)
     {
-        logger.LogInformation("Invalidating cache tag {Tag}", CacheKeys.CoursesTag);
-        await cache.RemoveByTagAsync(CacheKeys.CoursesTag, ct);
+        logger.LogInformation(
+            "Invalidating cache tag {Tag}",
+            CacheKeys.CoursesTag);
+
+        await cache.RemoveByTagAsync(
+            CacheKeys.CoursesTag,
+            ct);
     }
 }
