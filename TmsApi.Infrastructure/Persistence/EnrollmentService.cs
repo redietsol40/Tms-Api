@@ -80,4 +80,22 @@ public class EnrollmentService(TmsDbContext context) : IEnrollmentService
             .Where(e => e.StudentId == studentId)
             .ToListAsync(ct);
     }
+
+    // M9: list all enrollments for the instructor dashboard
+    public async Task<List<EnrollmentSummaryDto>> GetAllAsync(CancellationToken ct)
+    {
+        return await context.Enrollments
+            .AsNoTracking()
+            .Include(e => e.Student)
+            .Include(e => e.Course)
+            .Select(e => new EnrollmentSummaryDto(
+                e.Id,
+                e.StudentId,
+                e.Student.Name,
+                e.CourseId,
+                e.Course.Title,
+                "Pending", // TODO: no Status column exists yet on Enrollment; hardcoded until that's added
+                e.EnrolledAt))
+            .ToListAsync(ct);
+    }
 }

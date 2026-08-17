@@ -92,14 +92,17 @@ builder.Services.AddDbContext<TmsDbContext>(options =>
     options.UseNpgsql(builder.Configuration.GetConnectionString("TmsDatabase"))
         .LogTo(Console.WriteLine, LogLevel.Information) // SQL logging (M5 Session 1, Exercise 2)
         .EnableSensitiveDataLogging()); // dev only
-        builder.Services.AddCors(options =>
+       builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowAngular", policy =>
-        policy.WithOrigins("http://localhost:4200")
-              .AllowAnyHeader()
-              .AllowAnyMethod());
+    {
+        policy
+            .WithOrigins("http://localhost:4200")
+            .AllowAnyHeader()
+            .AllowAnyMethod()
+            .AllowCredentials();
+    });
 });
-
 // M6 Session 1 — Course and Enrollment services (DB-backed)
 builder.Services.AddScoped<ICourseService, CourseService>();
 builder.Services.AddScoped<ICachedCourseService, CachedCourseService>();
@@ -148,7 +151,7 @@ app.UseMiddleware<V1DeprecationMiddleware>();
 
 app.UseAuthentication();
 app.UseAuthorization();
-app.UseMiddleware<V1DeprecationMiddleware>();
+//app.UseMiddleware<V1DeprecationMiddleware>();
 app.UseCors("AllowAngular");
 
 
