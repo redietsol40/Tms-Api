@@ -26,6 +26,8 @@ using TmsApi.Infrastructure.Workers;
 using TmsApi.Api.Hubs;
 using TmsApi.Application.Notifications;
 using TmsApi.Api.Notifications;
+using TmsApi.Application.Auth;
+using Microsoft.AspNetCore.Antiforgery;
 var builder = WebApplication.CreateBuilder(args);
 
 
@@ -43,7 +45,10 @@ builder.Host.UseDefaultServiceProvider(options =>
     options.ValidateScopes = true;
     options.ValidateOnBuild = true;
 });
-
+builder.Services.AddAntiforgery(options =>
+{
+options.HeaderName = "X-XSRF-TOKEN";
+});
 // Background worker (M4 Session 2 — Exercise 2)
 builder.Services.AddSingleton<EnrollmentWorker>();
 
@@ -151,7 +156,26 @@ app.UseMiddleware<V1DeprecationMiddleware>();
 
 app.UseAuthentication();
 app.UseAuthorization();
-//app.UseMiddleware<V1DeprecationMiddleware>();
+app.UseMiddleware<V1DeprecationMiddleware>();
+app.Use(async (context, next) =>
+{
+if (context.User.Identity?.IsAuthenticated == true || context.
+Request.Cookies.ContainsKey("tms_auth"))
+{
+var antiforgery = context.RequestServices
+.GetRequiredService<IAntiforgery>();
+var tokens = antiforgery.GetAndStoreTokens(context);
+context.Response.Cookies.Append("XSRF-TOKEN", tokens.RequestToken!,
+new CookieOptions
+{
+HttpOnly = false, // MUST be false so Angular Jav
+
+Secure = !builder.Environment.IsDevelopment(),
+SameSite = SameSiteMode.Strict
+});
+}
+await next(context);
+});
 app.UseCors("AllowAngular");
 
 
