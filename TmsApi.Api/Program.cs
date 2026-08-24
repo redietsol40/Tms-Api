@@ -99,7 +99,7 @@ builder.Services.AddDbContext<TmsDbContext>(options =>
         .EnableSensitiveDataLogging()); // dev only
        builder.Services.AddCors(options =>
 {
-    options.AddPolicy("AllowAngular", policy =>
+    options.AddPolicy("TmsClient", policy =>
     {
         policy
             .WithOrigins("http://localhost:4200")
@@ -151,6 +151,7 @@ using (var scope = app.Services.CreateScope())
 }
 
 app.UseExceptionHandler();
+app.UseStatusCodePages();
 app.UseMiddleware<RequestLoggingMiddleware>();
 app.UseMiddleware<V1DeprecationMiddleware>();
 
@@ -176,7 +177,7 @@ SameSite = SameSiteMode.Strict
 }
 await next(context);
 });
-app.UseCors("AllowAngular");
+app.UseCors("TmsClient");
 
 
 if (app.Environment.IsDevelopment())
@@ -191,7 +192,6 @@ if (app.Environment.IsDevelopment())
 }
 
 app.MapControllers();
-app.MapHub<TmsHub>("/hubs/tms");
-
-
+app.MapHub<TmsHub>("/hubs/tms")
+    .RequireCors("TmsClient");
 app.Run();
