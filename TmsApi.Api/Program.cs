@@ -28,6 +28,15 @@ using TmsApi.Application.Notifications;
 using TmsApi.Api.Notifications;
 using TmsApi.Application.Auth;
 using Microsoft.AspNetCore.Antiforgery;
+using Microsoft.AspNetCore.Identity;
+
+using TmsApi.Infrastructure.Identity;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.IdentityModel.Tokens;
+using System.Text;
+
+ 
+
 var builder = WebApplication.CreateBuilder(args);
 
 
@@ -127,6 +136,41 @@ builder.Services.AddHybridCache(options =>
         LocalCacheExpiration = TimeSpan.FromMinutes(2)
     };
 });
+builder.Services.AddIdentityCore<TmsUser>(options =>
+{
+// Enterprise Password Policy
+options.Password.RequiredLength = 12;
+options.Password.RequireUppercase = true;
+options.Password.RequireDigit = true;
+options.Password.RequireNonAlphanumeric = true;
+// Brute-Force Lockout Protection
+options.Lockout.MaxFailedAccessAttempts = 5;
+options.Lockout.DefaultLockoutTimeSpan = TimeSpan.FromMinutes(15);
+options.Lockout.AllowedForNewUsers = true;
+})
+.AddRoles<IdentityRole>()
+.AddEntityFrameworkStores<TmsDbContext>();
+builder.Services.AddScoped<TokenService>();
+
+builder.Services.AddAuthentication(options =>
+{
+    options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
+    options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
+})
+.AddJwtBearer(options =>
+{
+    options.TokenValidationParameters = new TokenValidationParameters
+    {
+        ValidateIssuer = true,
+        ValidateAudience = true,
+        ValidateLifetime = true,
+        ValidateIssuerSigningKey = true,
+        ValidIssuer = builder.Configuration["Jwt:Issuer"],
+        ValidAudience = builder.Configuration["Jwt:Audience"],
+        IssuerSigningKey = new SymmetricSecurityKey(
+            Encoding.UTF8.GetBytes(builder.Configuration["Jwt:Key"]!))
+    };
+});
 
 builder.Services.AddExceptionHandler<GlobalExceptionHandler>();
 builder.Services.AddHybridCache();
@@ -149,6 +193,25 @@ using (var scope = app.Services.CreateScope())
     var context = scope.ServiceProvider.GetRequiredService<TmsDbContext>();
     await DataSeeder.SeedAsync(context);
 }
+app.MapGet("/api/dev/hash-test", () =>
+{
+    var service = new CryptoDemoService();
+
+    string hash1 = service.HashUserPassword("Password123!");
+    string hash2 = service.HashUserPassword("Password123!");
+
+    bool match1 = service.VerifyUserPassword("Password123!", hash1);
+    bool match2 = service.VerifyUserPassword("Password123!", hash2);
+
+    return Results.Ok(new
+    {
+        hash1,
+        hash2,
+        hashesAreDifferent = hash1 != hash2,
+        match1,
+        match2
+    });
+});
 
 app.UseExceptionHandler();
 app.UseStatusCodePages();
