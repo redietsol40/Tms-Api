@@ -33,7 +33,13 @@ using Microsoft.AspNetCore.Identity;
 using TmsApi.Infrastructure.Identity;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
-using System.Text;
+using Microsoft.AspNetCore.Authorization;
+using TmsApi.Api.Authorization;
+using Microsoft.AspNetCore.RateLimiting;
+ using System.Text;
+
+ 
+
 
  
 
@@ -73,7 +79,15 @@ builder.Services.AddControllers(options =>
 {
     options.Filters.Add<AuditLogFilter>();
 });
-
+builder.Services.AddRateLimiter(options =>
+{
+    options.AddFixedWindowLimiter("AuthLimiter", opt =>
+    {
+        opt.PermitLimit = 5;
+        opt.Window = TimeSpan.FromMinutes(1);
+        opt.QueueLimit = 0;
+    });
+});
 // ProblemDetails (M4 Session 3 — Exercise 6)
 builder.Services.AddProblemDetails();
 
@@ -117,6 +131,7 @@ builder.Services.AddDbContext<TmsDbContext>(options =>
             .AllowCredentials();
     });
 });
+
 // M6 Session 1 — Course and Enrollment services (DB-backed)
 builder.Services.AddScoped<ICourseService, CourseService>();
 builder.Services.AddScoped<ICachedCourseService, CachedCourseService>();
@@ -192,7 +207,12 @@ using (var scope = app.Services.CreateScope())
 {
     var context = scope.ServiceProvider.GetRequiredService<TmsDbContext>();
     await DataSeeder.SeedAsync(context);
-}
+app.MapGet("/api/dev/students", async (TmsDbContext db) =>
+{
+    var students = await db.Students.ToListAsync();
+    return Results.Ok(students);
+});}
+
 app.MapGet("/api/dev/hash-test", () =>
 {
     var service = new CryptoDemoService();
@@ -220,12 +240,22 @@ app.UseMiddleware<V1DeprecationMiddleware>();
 
 app.UseAuthentication();
 app.UseAuthorization();
+app.UseRateLimiter();
 app.UseMiddleware<V1DeprecationMiddleware>();
 app.Use(async (context, next) =>
 {
 if (context.User.Identity?.IsAuthenticated == true || context.
 Request.Cookies.ContainsKey("tms_auth"))
 {
+    app.Use(async (context, next) =>
+{
+    context.Response.Headers.Append("X-Content-Type-Options", "nosniff");
+    context.Response.Headers.Append("X-Frame-Options", "DENY");
+    context.Response.Headers.Append("Referrer-Policy", "strict-origin-when-cross-origin");
+    context.Response.Headers.Append("Content-Security-Policy",
+        "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline';");
+    await next();
+});
 var antiforgery = context.RequestServices
 .GetRequiredService<IAntiforgery>();
 var tokens = antiforgery.GetAndStoreTokens(context);

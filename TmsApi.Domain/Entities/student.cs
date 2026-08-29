@@ -10,5 +10,7 @@ public class Student
     public bool IsDeleted { get; set; } = false;
     public uint Version { get; set; }
 
+    public string? UserId { get; set; } // links to TmsUser.Id (Identity)
+
     public ICollection<Enrollment> Enrollments { get; set; } = new List<Enrollment>();
 }

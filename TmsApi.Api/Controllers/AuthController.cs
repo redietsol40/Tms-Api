@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.EntityFrameworkCore;
 using TmsApi.Infrastructure.Identity;
 using TmsApi.Infrastructure.Persistence;
@@ -68,11 +69,29 @@ public class AuthController : ControllerBase
 
         await _userManager.AddToRoleAsync(user, request.Role);
 
+        // If registering as a Student, create a linked Student record
+        if (request.Role == "Student")
+        {
+            var student = new Student
+            {
+                RegistrationNumber = $"STU-{Guid.NewGuid().ToString("N")[..8].ToUpper()}",
+                Name = $"{request.FirstName} {request.LastName}",
+                GPA = 0,
+                IsActive = true,
+                IsDeleted = false,
+                UserId = user.Id
+            };
+
+            _context.Students.Add(student);
+            await _context.SaveChangesAsync();
+        }
+
         return Ok(new { message = "Registration successful." });
     }
 
     public record LoginRequest(string Email, string Password);
 
+    [EnableRateLimiting("AuthLimiter")]
     [HttpPost("login")]
     public async Task<IActionResult> Login([FromBody] LoginRequest request)
     {
